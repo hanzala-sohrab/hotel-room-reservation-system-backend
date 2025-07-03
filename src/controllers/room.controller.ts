@@ -9,11 +9,13 @@ import {
 import {
   get,
   getModelSchemaRef,
+  HttpErrors,
   param,
   post,
   requestBody,
   response,
 } from '@loopback/rest';
+import {MAX_ROOMS_PER_GUEST, ROOMS} from '../constants';
 import {Room} from '../models';
 import {RoomRepository} from '../repositories';
 
@@ -50,13 +52,24 @@ export class RoomController {
     content: {'application/json': {schema: getModelSchemaRef(Room)}},
   })
   async bookRooms(
-    @requestBody() body: {count: number; guestId: number},
+    @requestBody() body: {count: number; guestId: string},
   ): Promise<Room[]> {
-    const availableRooms = (await this.roomRepository.find()).filter(
-      r => !r.isOccupied,
-    );
-    const count = Math.min(5, body.count);
     const {guestId} = body;
+
+    const rooms = await this.roomRepository.find();
+    const roomsBookedByThisIndividual = rooms.filter(
+      r => r.guestId === guestId,
+    );
+
+    const noOfRoomsBookedByThisIndividual = roomsBookedByThisIndividual.length;
+
+    if (noOfRoomsBookedByThisIndividual === MAX_ROOMS_PER_GUEST) {
+      throw new HttpErrors.BadRequest(ROOMS.BOOK_ROOM_LIMIT_EXCEEDED);
+    }
+
+    const availableRooms = rooms.filter(r => !r.isOccupied);
+
+    const count = Math.min(MAX_ROOMS_PER_GUEST, body.count);
 
     const sorted = availableRooms.sort((a, b) => a.id - b.id);
 

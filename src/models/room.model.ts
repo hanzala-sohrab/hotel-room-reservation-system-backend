@@ -32,12 +32,12 @@ export class Room extends Entity {
   isOccupied: boolean;
 
   @property({
-    type: 'number',
+    type: 'string',
     mysql: {
       columnName: 'guest_id',
     },
   })
-  guestId?: number;
+  guestId?: string;
 
   constructor(data?: Partial<Room>) {
     super(data);
