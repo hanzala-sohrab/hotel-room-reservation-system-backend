@@ -85,6 +85,47 @@ export class RoomController {
     return bestCombo;
   }
 
+  @post('/rooms/reset')
+  @response(200, {
+    description: 'Room model instance',
+    content: {'application/json': {schema: getModelSchemaRef(Room)}},
+  })
+  async resetRooms(): Promise<{}> {
+    await this.roomRepository.updateAll({isOccupied: false, guestId: ''});
+    return {
+      status: 'success',
+      message: 'All rooms have been reset',
+    };
+  }
+
+  @post('/rooms/randomize')
+  @response(200, {
+    description: 'Random occupancy generated for all rooms',
+    content: {
+      'application/json': {
+        schema: {type: 'array', items: getModelSchemaRef(Room)},
+      },
+    },
+  })
+  async generateRandomOccupancy(): Promise<Room[]> {
+    const randomIds = Array.from(
+      {length: Math.floor((Math.random() + 1) * 10)},
+      () =>
+        Math.floor(100 * Math.ceil(10 * Math.random()) + Math.random() * 10),
+    );
+
+    await Promise.allSettled(
+      randomIds.map(id =>
+        this.roomRepository.updateById(id, {
+          isOccupied: Math.random() < 0.5,
+          guestId: Math.random().toString(36).substring(2, 10),
+        }),
+      ),
+    );
+
+    return this.roomRepository.find();
+  }
+
   @get('/rooms/count')
   @response(200, {
     description: 'Room model count',
